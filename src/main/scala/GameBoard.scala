@@ -4,12 +4,16 @@ import scala.util.Random
 /**
   * Created by wschoi on 2016-10-12.
   */
-class GameBoard(player_A: Player,player_B: Player )
+class GameBoard(val player_A: Player,val player_B: Player )
 {
 
   val positions_A = new mutable.MutableList[Int]
   val positions_B = new mutable.MutableList[Int]
 
+  def init () = {
+    positions_A.clear()
+    positions_B.clear()
+  }
   def move (player: Player, new_pos: Int): Boolean = {
 
     require(player == player_A || player== player_B, "illegal player")
@@ -19,10 +23,7 @@ class GameBoard(player_A: Player,player_B: Player )
     if(new_pos<0 || new_pos >8) return false
     if(over) return true
 
-    val positions = player match {
-      case this.player_A => positions_A
-      case this.player_B => positions_B
-    }
+    val positions = if (player == player_A) positions_A else positions_B
 
     if(positions_A.contains(new_pos) || positions_B.contains( new_pos) ){
 
@@ -33,7 +34,7 @@ class GameBoard(player_A: Player,player_B: Player )
     }
 
     positions += new_pos
-    positions sortBy (x => x)
+    positions sortBy ( x => x )
 
     return true
 
@@ -52,19 +53,62 @@ class GameBoard(player_A: Player,player_B: Player )
     else list.head
   }
 
-  def fight_and_get_winner():Player = {
+  def get_Stronger(): Player = {
+
+    val epoch = 5
+    var A_win = 0
+    var B_win = 0
+
+    for(iter <- 1 to epoch) {
+
+      val a_first = game_a_first()
+
+      if(a_first == Some(player_A)) A_win = A_win +1
+      else if (a_first == Some(player_B)) B_win = B_win +1
+
+      val b_first = game_b_first()
+
+      if(b_first == Some(player_A)) A_win = A_win +1
+      else if (b_first == Some(player_B)) B_win = B_win +1
+
+    }
+
+    if (A_win > B_win) player_A else player_B
+
+  }
+
+  def game_a_first():Option[Player]= {
+
+    init()
 
     while(!over()){
 
       if(move(player_A, move_next(player_A)))
         move(player_B, move_next(player_B))
 
-      if(wonBy(player_A)) return player_A
-      if(wonBy(player_B)) return player_B
+      if(wonBy(player_A)) return Some(player_A)
+      if(wonBy(player_B)) return Some(player_B)
 
     }
 
-    return null
+    return None
+
+  }
+  def game_b_first():Option[Player]= {
+
+    init()
+
+    while(!over()){
+
+      if(move(player_B, move_next(player_B)))
+        move(player_A, move_next(player_A))
+
+      if(wonBy(player_B)) return Some(player_B)
+      if(wonBy(player_A)) return Some(player_A)
+
+    }
+
+    return None
 
   }
 
@@ -91,11 +135,8 @@ class GameBoard(player_A: Player,player_B: Player )
   }
 
   def wonBy(player: Player): Boolean =  {
-    player match {
-      case player_A => winSets exists (matched_winSet => matched_winSet.forall( elem => positions_A contains elem ) )
-      case player_B => winSets exists (matched_winSet => matched_winSet.forall( elem => positions_B contains elem ) )
-      case _ => false
-    }
+    if(player == player_A ) winSets exists (matched_winSet => matched_winSet.forall( elem => positions_A contains elem ) )
+    else winSets exists (matched_winSet => matched_winSet.forall( elem => positions_B contains elem ) )
 
   }
 
